@@ -1,9 +1,15 @@
 use scraper::{Html, Selector};
-use std::collections::HashMap;
+
+#[derive(Debug)]
+struct OrganicResult {
+    thumbnail: String
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let res = reqwest::get("https://rst.ua/oldcars/?task=newresults&make%5B%5D=0&price%5B%5D=0&price%5B%5D=0&year%5B%5D=0&year%5B%5D=0&condition=0&engine%5B%5D=0&engine%5B%5D=0&fuel=0&gear=0&drive=0&results=1&saled=0&notcust=&sort=1&city=0&from=sform&body%5B%5D=4").await?;
+    let url: String = String::from("https://rst.ua/oldcars/?task=newresults&make%5B%5D=0&price%5B%5D=0&price%5B%5D=0&year%5B%5D=0&year%5B%5D=0&condition=0&engine%5B%5D=0&engine%5B%5D=0&fuel=0&gear=0&drive=0&results=1&saled=0&notcust=&sort=1&city=0&from=sform&body%5B%5D=4");
+
+    let res = reqwest::get(&url).await?;
 
     println!("Status: {}", res.status());
 
@@ -16,11 +22,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let image_selector = Selector::parse(".rst-ocb-i-i").unwrap();
 
+    let mut result: Vec<OrganicResult> = vec![];
+
     for organic_result_node in organic_results {
         let image_node = organic_result_node.select(&image_selector).next().unwrap();
+        let thumbnail = format!("https:{}", image_node.value().attr("src").unwrap().to_string());
 
-        println!("Image src: https:{}", image_node.value().attr("src").unwrap());
+        result.push(OrganicResult{ thumbnail: thumbnail });
     }
+
+    println!("{:?}", result);
 
     Ok(())
 }
