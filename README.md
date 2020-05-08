@@ -1,4 +1,4 @@
 Autogreggate
 ===
 
-Аггрегатор объявлений б/у автомобилей в Украине.
+Aggregate used cars listings from Ukrainian websites.
