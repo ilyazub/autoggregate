@@ -10,7 +10,7 @@ async fn get(url: String) -> Result<std::string::String, reqwest::Error> {
 
     println!("Status: {}", res.status());
 
-    return res.text().await
+    res.text().await
 }
 
 fn parse(html: String) -> Vec<OrganicResult> {
@@ -21,16 +21,14 @@ fn parse(html: String) -> Vec<OrganicResult> {
 
     let image_selector = Selector::parse(".rst-ocb-i-i").unwrap();
 
-    let mut result: Vec<OrganicResult> = vec![];
-
-    for organic_result_node in organic_results {
+    let parsed: Vec<OrganicResult> = organic_results.map(|organic_result_node| {
         let image_node = organic_result_node.select(&image_selector).next().unwrap();
         let thumbnail = format!("https:{}", image_node.value().attr("src").unwrap().to_string());
 
-        result.push(OrganicResult{ thumbnail: thumbnail });
-    }
+        OrganicResult{ thumbnail: thumbnail }
+    }).collect::<Vec<OrganicResult>>();
 
-    result
+    parsed
 }
 
 #[tokio::main]
