@@ -29,17 +29,23 @@ fn parse(html: String) -> Vec<OrganicResult> {
     let image_selector = Selector::parse(".rst-ocb-i-i").unwrap();
     let title_selector = Selector::parse(".rst-ocb-i-h span").unwrap();
 
-    let parsed: Vec<OrganicResult> = organic_results.map(|organic_result_node| {
-        let image_node = organic_result_node.select(&image_selector).next().unwrap();
-        let thumbnail = format!("https:{}", image_node.value().attr("src").unwrap().to_string());
+    organic_results
+        .map(|organic_result_node| {
+            let image_node = organic_result_node.select(&image_selector).next().unwrap();
+            let thumbnail = format!(
+                "https:{}",
+                image_node.value().attr("src").unwrap().to_string()
+            );
 
-        let title_node = organic_result_node.select(&title_selector).next().unwrap();
-        let title = title_node.text().nth(0).unwrap().to_string();
+            let title_node = organic_result_node.select(&title_selector).next().unwrap();
+            let title = title_node.text().nth(0).unwrap().to_string();
 
-        OrganicResult{ title: title, thumbnail: thumbnail }
-    }).collect::<Vec<OrganicResult>>();
-
-    parsed
+            OrganicResult {
+                title: title,
+                thumbnail: thumbnail,
+            }
+        })
+        .collect::<Vec<OrganicResult>>()
 }
 
 #[tokio::main]
