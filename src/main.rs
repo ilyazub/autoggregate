@@ -1,18 +1,35 @@
 extern crate reqwest;
-// extern crate select;
+extern crate soup;
+extern crate regex;
 
-// use select::document::Document;
-// use select::predicate::{Class, Name, Predicate};
-
-use scraper::{Html, Selector};
+use regex::Regex;
+use soup::prelude::*;
+use std::string::String;
 
 #[derive(Debug)]
-struct OrganicResult {
+pub struct OrganicResult {
     title: String,
+    description: String,
     thumbnail: String,
+    updated_at: String,
+
+    // price_uah: f32,
+    // price_usd: f32,
+
+    // year: i8,
+    // mileage: i8,
+
+    // fuel: String,
+    // volume: f32,
+    // gear: String,
+
+    // state: String,
+    // condition: String,
+
+    // paid_listing: String,
 }
 
-async fn get(url: String) -> Result<std::string::String, reqwest::Error> {
+async fn get(url: String) -> Result<String, reqwest::Error> {
     let res = reqwest::get(&url).await?;
 
     println!("Status: {}", res.status());
@@ -20,30 +37,87 @@ async fn get(url: String) -> Result<std::string::String, reqwest::Error> {
     res.text().await
 }
 
-fn parse(html: String) -> Vec<OrganicResult> {
-    let fragment = Html::parse_fragment(&html);
+pub fn parse(html: &str) -> Vec<OrganicResult> {
+    let soup = Soup::new(html);
 
-    let organic_results_selector = Selector::parse("#rst-page-1 .rst-uix-radius").unwrap();
-    let organic_results = fragment.select(&organic_results_selector);
-
-    let image_selector = Selector::parse(".rst-ocb-i-i").unwrap();
-    let title_selector = Selector::parse(".rst-ocb-i-h span").unwrap();
-
-    organic_results
-        .map(|organic_result_node| {
-            let image_node = organic_result_node.select(&image_selector).next().unwrap();
-            let thumbnail = format!(
+    soup.class("rst-ocb-i")
+        .find_all()
+        .map(|organic_result_node| OrganicResult {
+            thumbnail: format!(
                 "https:{}",
-                image_node.value().attr("src").unwrap().to_string()
-            );
+                organic_result_node
+                    .class("rst-ocb-i-i")
+                    .find()
+                    .expect("Couldn't find 'thumbnail' node")
+                    .get("src")
+                    .unwrap()
+                    .to_owned()
+            ),
 
-            let title_node = organic_result_node.select(&title_selector).next().unwrap();
-            let title = title_node.text().nth(0).unwrap().to_string();
+            title: organic_result_node
+                .class("rst-ocb-i-h")
+                .find()
+                .expect("Couldn't find 'title wrapper' node")
+                .tag("span")
+                .find()
+                .expect("Couldn't find 'title' node")
+                .text()
+                .to_owned(),
+            description: organic_result_node
+                .class("rst-ocb-i-d-d")
+                .find()
+                .expect("Couldn't find 'description' node")
+                .text()
+                .to_owned(),
+            updated_at: organic_result_node
+                .class("rst-ocb-i-s")
+                .find()
+                .expect("Couldn't find 'updated_at' node")
+                .text()
+                .to_owned(),
 
-            OrganicResult {
-                title: title,
-                thumbnail: thumbnail,
-            }
+            // price_uah: organic_result_node
+            //     .class("rst-ocb-i-d-l-i-s-p")
+            //     .find()
+            //     .expect("Couldn't find 'price_uah' node")
+            //     .text()
+            //     .parse::<f32>()
+            //     .expect("Couldn't parse 'price_uah'"),
+            // price_usd: organic_result_node
+            //     .class("rst-uix-grey")
+            //     .find()
+            //     .expect("Couldn't find 'price_usd' node")
+            //     .text()
+            //     .parse::<f32>()
+            //     .expect("Couldn't parse 'price_usd'"),
+
+            // year: organic_result_node
+            //     .class("rst-ocb-i-d-l-i")
+            //     .limit(3)
+            //     .class("rst-ocb-i-d-l-i-s")
+            //     .find()
+            //     .expect("Couldn't find 'year' node")
+            //     .text()
+            //     .parse::<i8>()
+            //     .unwrap(),
+            // mileage: organic_result_node
+            //     .class("rst-ocb-i-d-l-i-s")
+            //     .find()
+            //     .expect("Couldn't find 'mileage' node")
+            //     .text()
+            //     .parse::<i8>()
+            //     .unwrap(),
+
+            // fuel: "rst-ocb-i-d-l-i-s".to_owned(),
+            // volume: r#"//*[@id="rst-ocid-11121411"]/div[1]/ul/li[5]/text()[2]"#
+            //     .parse::<f32>()
+            //     .unwrap(),
+            // gear: ".rst-ocb-i-d-l-i-s+ .rst-ocb-i-d-l-i-s".to_owned(),
+
+            // state: ".rst-ocb-i-d-l-j:nth-child(2) .rst-ocb-i-d-l-i-s".to_owned(),
+            // condition: ".rst-ocb-i-d-l-j~ .rst-ocb-i-d-l-j .rst-ocb-i-d-l-i-s".to_owned(),
+
+            // paid_listing: ".rst-ocb-i-s-s".to_owned(),
         })
         .collect::<Vec<OrganicResult>>()
 }
@@ -54,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let html = get(url).await?;
 
-    let result = parse(html);
+    let result = parse(&html);
 
     println!("{:?}", result);
 

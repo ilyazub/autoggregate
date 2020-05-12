@@ -2,11 +2,13 @@
 name = "autogreggate"
 version = "0.1.0"
 authors = ["Ilya Zub <zaoooza92@gmail.com>"]
+license = "MIT OR Apache-2.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-scraper = "0.12.0"
+soup = "0.5.0"
 reqwest = { version = "0.10", features = ["json"] }
 tokio = { version = "0.2", features = ["full"] }
+regex = "1.3.7"
