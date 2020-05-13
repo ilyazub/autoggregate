@@ -55,12 +55,15 @@ fn parse(html: &str) -> Vec<OrganicResult> {
                     .get("class")
                     .unwrap()
                     .contains("rst-ocb-i-premium"),
-                link: organic_result_node
-                    .class("rst-ocb-i-a")
-                    .find()
-                    .expect("Couldn't find 'link' node")
-                    .get("href")
-                    .expect("Couldn't get 'href'"),
+                link: format!(
+                    "https://rst.ua{}",
+                    organic_result_node
+                        .class("rst-ocb-i-a")
+                        .find()
+                        .expect("Couldn't find 'link' node")
+                        .get("href")
+                        .expect("Couldn't get 'href'")
+                ),
 
                 thumbnail: format!(
                     "https:{}",
