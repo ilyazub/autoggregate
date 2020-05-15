@@ -45,8 +45,7 @@ fn parse(html: &str) -> Vec<OrganicResult> {
                 .expect("Couldn't get 'id' of a node")
                 != "rst-oc-smaster-block"
         })
-        .enumerate()
-        .map(|(i, organic_result_node)| {
+        .map(|organic_result_node| {
             // println!("{}", i);
             // println!("{}", organic_result_node.display());
 
@@ -158,7 +157,7 @@ pub async fn crawl(make: &str) -> Vec<OrganicResult> {
         Ok(file) => file,
         Err(_) => {
             let url_string = format!(
-                "{origin}/oldcars/{make}?&results=4",
+                "{origin}/oldcars/{make}?results=1",
                 origin = "https://rst.ua",
                 make = make
             );

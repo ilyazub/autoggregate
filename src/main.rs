@@ -1,16 +1,39 @@
-use std::env;
+use futures_util::stream::StreamExt;
 use std::string::String;
 
 mod search;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
-    let make: &str = &args[1];
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut multi_threaded_runtime = tokio::runtime::Builder::new()
+        .threaded_scheduler()
+        .enable_all()
+        .thread_name("multi-threaded")
+        .build()?;
 
-    let result = crate::search::crawl(make).await;
+    multi_threaded_runtime.block_on(async move {
+        let before = tokio::time::Instant::now();
 
-    println!("{:?}", result);
+        let fetches = futures::stream::iter(vec![
+            tokio::spawn(search::crawl("opel")),
+            tokio::spawn(search::crawl("bmw")),
+            tokio::spawn(search::crawl("toyota")),
+        ])
+        .buffer_unordered(3)
+        .map(|r| {
+            println!(
+                "finished request: {}",
+                match r {
+                    Ok(rr) => format!("{:?}", rr),
+                    Err(_) => String::from("Bad"),
+                }
+            );
+        })
+        .collect::<Vec<_>>();
+
+        fetches.await;
+
+        println!("elapsed time: {:.2?}", before.elapsed());
+    });
 
     Ok(())
 }
