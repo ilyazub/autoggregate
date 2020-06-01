@@ -14,9 +14,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let before = tokio::time::Instant::now();
 
         let fetches = futures::stream::iter(vec![
-            tokio::spawn(search::crawl("opel")),
-            tokio::spawn(search::crawl("bmw")),
-            tokio::spawn(search::crawl("toyota")),
+            tokio::spawn(search::crawl_rst("opel")),
+            tokio::spawn(search::crawl_rst("bmw")),
+            tokio::spawn(search::crawl_rst("toyota")),
+            tokio::spawn(search::crawl_ria("opel")),
+            tokio::spawn(search::crawl_ria("bmw")),
+            tokio::spawn(search::crawl_ria("toyota")),
         ])
         .buffer_unordered(3)
         .map(|r| {

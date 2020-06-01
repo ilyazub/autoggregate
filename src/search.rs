@@ -26,6 +26,12 @@ pub struct OrganicResult {
     // paid_listing: String,
 }
 
+#[derive(Debug)]
+pub struct RiaOrganicResult {
+    link: String,
+    title: String,
+}
+
 async fn get(url: &str) -> Result<String, reqwest::Error> {
     let res = reqwest::get(url).await?;
 
@@ -46,9 +52,6 @@ fn parse(html: &str) -> Vec<OrganicResult> {
                 != "rst-oc-smaster-block"
         })
         .map(|organic_result_node| {
-            // println!("{}", i);
-            // println!("{}", organic_result_node.display());
-
             OrganicResult {
                 is_premium: organic_result_node
                     .get("class")
@@ -149,8 +152,32 @@ fn parse(html: &str) -> Vec<OrganicResult> {
         .collect::<Vec<OrganicResult>>()
 }
 
-pub async fn crawl(make: &str) -> Vec<OrganicResult> {
-    let filename_string = format!("/tmp/{make}.html", make = make);
+fn parse_ria(html: &str) -> Vec<RiaOrganicResult> {
+    let soup = Soup::new(html);
+
+    soup.class("ticket-item")
+        .tag("section")
+        .find_all()
+        .map(|organic_result_node| RiaOrganicResult {
+            link: organic_result_node
+                .class("address")
+                .find()
+                .expect("Couldn't find 'link' node")
+                .get("href")
+                .expect("Couldn't get 'href'"),
+
+            title: organic_result_node
+                .class("address")
+                .find()
+                .expect("Couldn't find 'link' node")
+                .get("title")
+                .expect("Couldn't get 'title'"),
+        })
+        .collect::<Vec<RiaOrganicResult>>()
+}
+
+pub async fn crawl_rst(make: &str) -> Vec<OrganicResult> {
+    let filename_string = format!("/tmp/rst/{make}.html", make = make);
     let filename = filename_string.as_str();
 
     let html: String = match fs::read_to_string(filename) {
@@ -181,10 +208,41 @@ pub async fn crawl(make: &str) -> Vec<OrganicResult> {
     parse(&html)
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+pub async fn crawl_ria(make: &str) -> Vec<RiaOrganicResult> {
+    let filename_string = format!("/tmp/ria/{make}.html", make = make);
+    let filename = filename_string.as_str();
+
+    let html: String = match fs::read_to_string(filename) {
+        Ok(file) => file,
+        Err(_) => {
+            let url_string = format!(
+                "{origin}/car/{make}",
+                origin = "https://auto.ria.com",
+                make = make
+            );
+
+            let url: &str = url_string.as_str();
+
+            let html: String = get(url)
+                .await
+                .expect(&format!("Can't download HTML from url: {}", url));
+
+            let html_to_write: &str = &html;
+            match fs::write(filename, html_to_write) {
+                Ok(_) => {}
+                Err(_) => {
+                    fs::create_dir("/tmp/ria/").expect("Can't create '/tmp/ria/' folder");
+
+                    fs::write(filename, html_to_write).expect(&format!(
+                        "Unable to write file: '{filename}'",
+                        filename = filename
+                    ));
+                }
+            }
+
+            html
+        }
+    };
+
+    parse_ria(&html)
 }
