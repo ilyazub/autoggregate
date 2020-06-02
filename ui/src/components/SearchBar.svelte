@@ -1,3 +1,16 @@
+<script context="module">
+  export async function preload({ params, query }) {
+    make = query.make || "Opel"
+
+    const response = await this.fetch(`http://localhost:8080/cars/${make.toLowerCase()}.json`)
+    const json = await response.json()
+
+    cars = json
+
+    return cars
+  }
+</script>
+
 <script>
   export let make = "Opel"
   export let cars = [];
@@ -6,9 +19,9 @@
     const response = await fetch(`http://localhost:8080/cars/${make.toLowerCase()}.json`)
     const json = await response.json()
 
-    console.log(json)
-
     cars = json
+
+    return cars
   }
 </script>
 
@@ -20,16 +33,16 @@
   <ul class="grid gap-4 grid-cols-3">
     {#each cars as car}
       <li class="rounded overflow-hidden shadow-lg hover:bg-gray-300">
-        <a rel="prefetch" href={car.link}>
+        <a href={car.link} target="_blank">
           <img class="w-full" src={car.thumbnail} alt={car.title} />
-        </a>
 
-        <div class="px-6 py-4">
-          <div class="font-bold text-xl mb-2">{car.title}</div>
-          <p class="text-gray-700 text-base">
-            {car.description}
-          </p>
-        </div>
+          <div class="px-6 py-4">
+            <div class="font-bold text-xl mb-2">{car.title}</div>
+            <p class="text-gray-700 text-base">
+              {car.description}
+            </p>
+          </div>
+        </a>
       </li>
     {/each}
   </ul>
