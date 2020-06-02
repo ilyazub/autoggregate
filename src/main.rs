@@ -1,5 +1,6 @@
 #![deny(rust_2018_idioms, warnings)]
 
+use actix_cors::Cors;
 use actix_web::{
     http::ContentEncoding,
     middleware::{Compress, Logger},
@@ -20,6 +21,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Compress::new(ContentEncoding::Br))
             .wrap(Logger::default())
             .wrap(Logger::new("%a %{User-Agent}i"))
+            .wrap(Cors::default())
             .service(handlers::get_cars_by_name)
     })
     .bind("127.0.0.1:8080")?

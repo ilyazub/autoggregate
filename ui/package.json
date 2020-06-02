@@ -1,0 +1,48 @@
+{
+  "name": "autoggregate_ui",
+  "description": "autoggregate ui",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "sapper dev",
+    "build": "sapper build && sapper export",
+    "start": "node __sapper__/build",
+    "cy:run": "cypress run",
+    "cy:open": "cypress open",
+    "test": "run-p --race dev cy:run"
+  },
+  "dependencies": {
+    "compression": "^1.7.1",
+    "got": "^11.2.0",
+    "helmet": "^3.22.0",
+    "keyv": "^4.0.1",
+    "keyv-file": "^0.2.0",
+    "polka": "next",
+    "postcss": "^7.0.31",
+    "postcss-load-config": "^2.1.0",
+    "sirv": "^0.4.0",
+    "svelte-preprocess": "^3.7.4",
+    "tailwindcss": "^1.4.6",
+    "uuid": "^8.1.0"
+  },
+  "devDependencies": {
+    "@arkweid/lefthook": "^0.7.2",
+    "@babel/core": "^7.10.2",
+    "@babel/plugin-syntax-dynamic-import": "^7.0.0",
+    "@babel/plugin-transform-runtime": "^7.10.1",
+    "@babel/preset-env": "^7.10.2",
+    "@babel/runtime": "^7.10.2",
+    "@rollup/plugin-babel": "^5.0.0",
+    "@rollup/plugin-commonjs": "^12.0.0",
+    "@rollup/plugin-node-resolve": "^8.0.0",
+    "@rollup/plugin-replace": "^2.2.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.0.5",
+    "prettier-plugin-svelte": "^1.1.0",
+    "rollup": "^2.12.0",
+    "rollup-plugin-svelte": "^5.0.1",
+    "rollup-plugin-terser": "^6.1.0",
+    "sapper": "^0.27.0",
+    "svelte": "^3.23.0",
+    "vercel": "^19.0.1"
+  }
+}
