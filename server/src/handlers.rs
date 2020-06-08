@@ -3,9 +3,16 @@
 use actix_web::{get, web, Error, HttpResponse};
 use serde::{Deserialize, Serialize};
 use soup::prelude::*;
-// use tokio::stream::StreamExt;
 
 use std::{fs, string::String};
+
+async fn get(url: &str) -> Result<String, reqwest::Error> {
+    let res = reqwest::get(url).await?;
+
+    assert_eq!(200, res.status());
+
+    res.text().await
+}
 
 #[derive(Debug, Serialize)]
 pub struct OrganicResult {
@@ -141,14 +148,6 @@ fn parse(html: &str) -> Vec<OrganicResult> {
             }
         })
         .collect::<Vec<OrganicResult>>()
-}
-
-async fn get(url: &str) -> Result<String, reqwest::Error> {
-    let res = reqwest::get(url).await?;
-
-    assert_eq!(200, res.status());
-
-    res.text().await
 }
 
 pub async fn crawl_rst(make: String) -> Result<Vec<OrganicResult>, Error> {
