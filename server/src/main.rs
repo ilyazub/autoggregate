@@ -22,7 +22,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .wrap(Logger::new("%a %{User-Agent}i"))
             .wrap(Cors::default())
-            .service(handlers::get_cars_by_name)
+            .service(handlers::get_cars_by_make)
     })
     .bind("127.0.0.1:8080")?
     .run()

@@ -13,14 +13,14 @@
   "dependencies": {
     "compression": "^1.7.1",
     "got": "^11.3.0",
-    "helmet": "^3.22.0",
+    "helmet": "^3.23.1",
     "keyv": "^4.0.1",
     "keyv-file": "^0.2.0",
     "polka": "next",
     "postcss": "^7.0.32",
     "postcss-load-config": "^2.1.0",
-    "sirv": "^0.4.0",
-    "svelte-preprocess": "^3.9.6",
+    "sirv": "^1.0.0",
+    "svelte-preprocess": "^3.9.8",
     "tailwindcss": "^1.4.6",
     "uuid": "^8.1.0"
   },
@@ -38,11 +38,11 @@
     "npm-run-all": "^4.1.5",
     "prettier": "^2.0.5",
     "prettier-plugin-svelte": "^1.1.0",
-    "rollup": "^2.15.0",
-    "rollup-plugin-svelte": "^5.0.1",
+    "rollup": "^2.16.1",
+    "rollup-plugin-svelte": "^5.2.3",
     "rollup-plugin-terser": "^6.1.0",
-    "sapper": "^0.27.0",
-    "svelte": "^3.23.0",
-    "vercel": "^19.0.1"
+    "sapper": "^0.27.16",
+    "svelte": "^3.23.2",
+    "vercel": "^19.1.1"
   }
 }

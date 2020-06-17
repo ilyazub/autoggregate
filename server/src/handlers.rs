@@ -14,16 +14,16 @@ async fn get(url: &str) -> Result<String, reqwest::Error> {
     res.text().await
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct OrganicResult {
     link: String,
     title: String,
-    description: String,
+    description: Option<String>,
     thumbnail: String,
     updated_at: String,
     // price_uah: f32,
     // price_usd: f32,
-    is_premium: bool,
+    is_paid: bool,
     name: String,
     // year: i8,
     // mileage: i8,
@@ -51,10 +51,11 @@ fn parse(html: &str) -> Vec<OrganicResult> {
         })
         .map(|organic_result_node| {
             OrganicResult {
-                is_premium: organic_result_node
+                is_paid: organic_result_node
                     .get("class")
-                    .unwrap()
+                    .expect("Couldn't get 'class' attribute")
                     .contains("rst-ocb-i-premium"),
+
                 link: format!(
                     "https://rst.ua{}",
                     organic_result_node
@@ -84,12 +85,15 @@ fn parse(html: &str) -> Vec<OrganicResult> {
                     .expect("Couldn't find 'title' node")
                     .text(),
 
-                description: organic_result_node
-                    .class("rst-ocb-i-d-d")
-                    .find()
-                    .expect("Couldn't find 'description' node")
-                    .text()
-                    .to_owned(),
+                description: Some(
+                    organic_result_node
+                        .class("rst-ocb-i-d-d")
+                        .find()
+                        .expect("Couldn't find 'description' node")
+                        .text()
+                        .to_owned(),
+                ),
+
                 updated_at: organic_result_node
                     .class("rst-ocb-i-s")
                     .find()
@@ -150,7 +154,76 @@ fn parse(html: &str) -> Vec<OrganicResult> {
         .collect::<Vec<OrganicResult>>()
 }
 
-pub async fn crawl_rst(make: String) -> Result<Vec<OrganicResult>, Error> {
+fn parse_ria(html: &str) -> Vec<OrganicResult> {
+    let soup = Soup::new(html);
+
+    soup.class("ticket-item")
+        .tag("section")
+        .find_all()
+        .map(|organic_result_node| OrganicResult {
+            link: organic_result_node
+                .class("address")
+                .find()
+                .expect("Couldn't find 'link' node")
+                .get("href")
+                .expect("Couldn't get 'href'"),
+
+            title: organic_result_node
+                .class("address")
+                .find()
+                .expect("Couldn't find 'link' node")
+                .get("title")
+                .expect("Couldn't get 'title'"),
+
+            thumbnail: match organic_result_node
+                .class("ticket-photo")
+                .find()
+                .expect("Couldn't find 'thumbnail' node")
+                .tag("picture")
+                .find()
+            {
+                Some(picture_node) => picture_node
+                    .tag("source")
+                    .find()
+                    .expect("Couldn't find 'source' node")
+                    .get("srcSet")
+                    .expect("Couldn't find 'srcSet'"),
+                None => organic_result_node
+                    .class("ticket-photo")
+                    .find()
+                    .expect("Couldn't find 'thumbnail' node")
+                    .tag("img")
+                    .find()
+                    .unwrap()
+                    .get("src")
+                    .unwrap(),
+            },
+
+            description: match organic_result_node.tag("p").find() {
+                Some(description_node) => Some(
+                    description_node
+                        .tag("span")
+                        .find()
+                        .expect("Couldn't find 'span' node")
+                        .text(),
+                ),
+                None => None,
+            },
+
+            name: organic_result_node
+                .attr_name("data-advertisement-data")
+                .find()
+                .expect("Couldn't find element with an 'id'")
+                .get("data-mark-name")
+                .expect("Couldn't find 'mark'"),
+
+            is_paid: false,
+            updated_at: "updated_at".to_owned(),
+        })
+        .collect::<Vec<OrganicResult>>()
+}
+
+pub async fn crawl_rst(make: &String) -> Result<Vec<OrganicResult>, Error> {
     let base_folder = "/tmp/rst/";
     let filename_string = format!(
         "{base_folder}{make}.html",
@@ -163,7 +236,7 @@ pub async fn crawl_rst(make: String) -> Result<Vec<OrganicResult>, Error> {
         Ok(html) => html,
         Err(_) => {
             let url_string: String = format!(
-                "{origin}/oldcars/{make}/",
+                "{origin}/oldcars/{make}/?results=4",
                 origin = "https://rst.ua",
                 make = make
             );
@@ -192,14 +265,53 @@ pub async fn crawl_rst(make: String) -> Result<Vec<OrganicResult>, Error> {
     Ok(parse(&html))
 }
 
-#[derive(Debug, Deserialize)]
-struct CarRequest {
-    name: String,
+pub async fn crawl_ria(make: &String) -> Result<Vec<OrganicResult>, Error> {
+    let filename_string = format!("/tmp/ria/{make}.html", make = make);
+    let filename = filename_string.as_str();
+
+    let html: String = match fs::read_to_string(filename) {
+        Ok(file) => file,
+        Err(_) => {
+            let url_string = format!(
+                "{origin}/car/{make}",
+                origin = "https://auto.ria.com",
+                make = make
+            );
+
+            let url: &str = url_string.as_str();
+
+            let html: String = get(url)
+                .await
+                .expect(&format!("Can't download HTML from url: {}", url));
+
+            let html_to_write: &str = &html;
+            match fs::write(filename, html_to_write) {
+                Ok(_) => {}
+                Err(_) => {
+                    fs::create_dir("/tmp/ria/").expect("Can't create '/tmp/ria/' folder");
+
+                    fs::write(filename, html_to_write).expect(&format!(
+                        "Unable to write file: '{filename}'",
+                        filename = filename
+                    ));
+                }
+            }
+
+            html
+        }
+    };
+
+    Ok(parse_ria(&html))
 }
 
-#[get("/cars/{name}.json")]
-async fn get_cars_by_name(car: web::Path<CarRequest>) -> Result<HttpResponse, Error> {
-    let response = crawl_rst(car.name.to_string()).await?;
+#[derive(Debug, Deserialize)]
+struct CarRequest {
+    make: String,
+}
+
+#[get("/cars/{make}.json")]
+async fn get_cars_by_make(car: web::Path<CarRequest>) -> Result<HttpResponse, Error> {
+    let response = [crawl_rst(&car.make).await?, crawl_ria(&car.make).await?].concat();
 
     Ok(HttpResponse::Ok().json(response))
 }
