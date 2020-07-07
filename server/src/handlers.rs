@@ -38,7 +38,7 @@ pub struct OrganicResult {
     // paid_listing: String,
 }
 
-fn parse(html: &str) -> Vec<OrganicResult> {
+fn parse_rst(html: &str) -> Vec<OrganicResult> {
     let soup = Soup::new(html);
 
     soup.class("rst-ocb-i")
@@ -72,6 +72,9 @@ fn parse(html: &str) -> Vec<OrganicResult> {
                         .class("rst-ocb-i-i")
                         .find()
                         .expect("Couldn't find 'thumbnail' node")
+                        .tag("img")
+                        .find()
+                        .expect("Couldn't find 'img' node")
                         .get("src")
                         .expect("Couldn't get thumbnail 'src'")
                 ),
@@ -102,11 +105,14 @@ fn parse(html: &str) -> Vec<OrganicResult> {
                     .to_owned(),
 
                 name: organic_result_node
-                    .class("rst-ocb-i-i")
-                    .find()
-                    .unwrap()
-                    .get("alt")
-                    .unwrap(),
+                        .class("rst-ocb-i-i")
+                        .find()
+                        .expect("Couldn't find 'thumbnail' node")
+                        .tag("img")
+                        .find()
+                        .expect("Couldn't find 'img' node")
+                        .get("alt")
+                        .expect("Couldn't get thumbnail 'alt'")
                 // price_uah: organic_result_node
                 //     .class("rst-ocb-i-d-l-i-s-p")
                 //     .find()
@@ -224,62 +230,31 @@ fn parse_ria(html: &str) -> Vec<OrganicResult> {
 }
 
 pub async fn crawl_rst(make: &String) -> Result<Vec<OrganicResult>, Error> {
-    let base_folder = "/tmp/rst/";
+    let html: String = crawl(
+        make,
+        String::from("/tmp/rst"),
+        &format!(
+            "{origin}/oldcars/{make}/?results=4",
+            origin = "https://rst.ua",
+            make = make
+        ),
+    )
+    .await;
+
+    Ok(parse_rst(&html))
+}
+
+async fn crawl(make: &String, tmp_base_path: String, url: &String) -> String {
     let filename_string = format!(
-        "{base_folder}{make}.html",
-        base_folder = base_folder,
+        "{tmp_base_path}/{make}.html",
+        tmp_base_path = tmp_base_path,
         make = make
     );
     let filename = filename_string.as_str();
 
-    let html: String = match fs::read_to_string(filename) {
-        Ok(html) => html,
-        Err(_) => {
-            let url_string: String = format!(
-                "{origin}/oldcars/{make}/?results=4",
-                origin = "https://rst.ua",
-                make = make
-            );
-
-            let url: &str = &url_string;
-
-            let html: String = get(url)
-                .await
-                .expect(&format!("Can't download HTML from url: {}", url));
-
-            let html_to_write: &str = &html;
-
-            match fs::write(filename, html_to_write) {
-                Ok(_) => {}
-                Err(_) => {
-                    fs::create_dir(base_folder)?;
-
-                    fs::write(filename, html_to_write)?;
-                }
-            };
-
-            html
-        }
-    };
-
-    Ok(parse(&html))
-}
-
-pub async fn crawl_ria(make: &String) -> Result<Vec<OrganicResult>, Error> {
-    let filename_string = format!("/tmp/ria/{make}.html", make = make);
-    let filename = filename_string.as_str();
-
-    let html: String = match fs::read_to_string(filename) {
+    match fs::read_to_string(filename) {
         Ok(file) => file,
         Err(_) => {
-            let url_string = format!(
-                "{origin}/car/{make}",
-                origin = "https://auto.ria.com",
-                make = make
-            );
-
-            let url: &str = url_string.as_str();
-
             let html: String = get(url)
                 .await
                 .expect(&format!("Can't download HTML from url: {}", url));
@@ -288,18 +263,30 @@ pub async fn crawl_ria(make: &String) -> Result<Vec<OrganicResult>, Error> {
             match fs::write(filename, html_to_write) {
                 Ok(_) => {}
                 Err(_) => {
-                    fs::create_dir("/tmp/ria/").expect("Can't create '/tmp/ria/' folder");
+                    fs::create_dir(&tmp_base_path)
+                        .expect(&format!("Can't create {} folder.", &tmp_base_path));
 
-                    fs::write(filename, html_to_write).expect(&format!(
-                        "Unable to write file: '{filename}'",
-                        filename = filename
-                    ));
+                    fs::write(filename, html_to_write)
+                        .expect(&format!("Unable to write file: '{}'", filename));
                 }
             }
 
             html
         }
-    };
+    }
+}
+
+pub async fn crawl_ria(make: &String) -> Result<Vec<OrganicResult>, Error> {
+    let html: String = crawl(
+        make,
+        String::from("/tmp/ria"),
+        &format!(
+            "{origin}/car/{make}",
+            origin = "https://auto.ria.com",
+            make = make
+        ),
+    )
+    .await;
 
     Ok(parse_ria(&html))
 }
